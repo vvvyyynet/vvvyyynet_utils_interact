@@ -1,0 +1,30 @@
+{
+  "name": "vvvyyynet_utils_interact",
+  "version": "0.1.0",
+  "description": "Wrapper functions for interactjs",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/vvvyyynet/vvvyyynet_utils_interact.git"
+  },
+  "keywords": [
+    "interactjs",
+    "dragging",
+    "cloning",
+    "drag",
+    "and",
+    "drop"
+  ],
+  "author": "Levyn Bürki",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/vvvyyynet/vvvyyynet_utils_interact/issues"
+  },
+  "homepage": "https://github.com/vvvyyynet/vvvyyynet_utils_interact#readme",
+  "dependencies": {
+    "interactjs": "^1.10.27"
+  }
+}
