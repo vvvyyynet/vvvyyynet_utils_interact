@@ -43,9 +43,15 @@ import { makeDraggableWithClone } from 'vvvyyynet_utils_interact';
 ### General/NPM
 - feat: add automatic semanticVersioning
 
+### Performance and Optimisation
+- Find out, if it makes a difference, to either
+  1. add the makeDraggable-Listeners with use: to each element (well, the function is only read once, but still...)
+	2. add the makeDraggable-Listeners elsewhere and instead of using `node` use `document.querySelector('draggable')`. (Does this event delegation even work?)
+
 ### Fixes
 - fix: What to do with the vvvyyynet_isClone-Attribute on drag-end? (see comment in code)
 - fix: autoScroll does not work yet, only on body...
+
 
 ### Features
 - feat: Allow clone-styling to be coppied to original after drag (maybe rethink and rename the variables)
@@ -61,3 +67,4 @@ import { makeDraggableWithClone } from 'vvvyyynet_utils_interact';
 ### Chore and Refactor
 - chore: Consider renaming the removeClonesOnEnd feature to something with copy
 - refactor: move userSelect-feature to own function, since it is shared by both wrappers
+
