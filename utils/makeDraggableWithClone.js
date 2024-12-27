@@ -1,49 +1,58 @@
- 
 import interact from 'interactjs';
+import {dragElement} from './dragElement'
+import {handleClassListActions} from './handleClassListActions'
 
-// Function to handle the drag movement
-function dragElement(ev) {
-	const el = ev.target;
-	let x = (parseFloat(el.getAttribute('data-x')) || 0) + ev.dx;
-	let y = (parseFloat(el.getAttribute('data-y')) || 0) + ev.dy;
-	el.style.webkitTransform = el.style.transform = `translate(${x}px,${y}px)`;
-	el.setAttribute('data-x', x);
-	el.setAttribute('data-y', y);
-}
+let DRAG = {
+	is_dragging: false,
+	node_orig: undefined,
+	node_clone: undefined
+};
+
 
 // Main draggable function with clone creation and movement handling
 export function makeDraggableWithClone(
 	node,
-	{onStart = (ev) => {},
-	onMove= (ev) => {},
-	onEnd= (ev) => {}
-  },
-	allowFrom = '*',
-	inertia = false,
-	autoScroll = false,
-	parentNodeOfClone = 'body',
-  removeClonesOnEnd = true,
-  removeOriginalOnDrag = true,
+	{
+		onstart_extra = (ev) => {},
+		onmove_extra = (ev) => {},
+		onend_extra = (ev) => {},
+		allowFrom = '*',
+		inertia = false,
+		autoScroll = false,
+		parentNodeOfClone = 'body',
+		removeClonesOnEnd = true,
+		hideOriginalOnDrag = true,
+		cloneAddClasses = null,
+		cloneRemoveClasses = null,
+		cloneToggleClasses = null
+	}
 ) {
-  // --------------------
+	// --------------------
 	// DEFAULTS
-  // --------------------
+	// --------------------
 	// allowFrom = "*" (Allow dragging from anywhere within the node)
 	// inertia = false
 	// autoScroll = false (Note: autoScroll *does* work, but the clone will get offset. //! TODO manual adjustments needed)
-	// onStart
-	// onMove
-	// onEnd
-  // parentNodeOfClone = 'body' (can also be a node)
-  // removeClonesOnEnd = true
-  // removeOriginalOnDrag = true
+	// onstart_extra
+	// onmove_extra
+	// onend_extra
+	// parentNodeOfClone = 'body' (any queryString or node allowed) Note, that with 'body' it may lead to awkward scrolling behavior together with autoScroll
+	// removeClonesOnEnd = true
+	// cloneAddClasses = null (add (tailwind)classes to the clone)
+	// cloneRemoveClasses = null (remove (tailwind)classes to the clone)
+	// cloneToggleClasses = null (toggle (tailwind)classes to the clone)
 
-	let DRAG = {
-		is_active: false,
-		node_orig: undefined,
-		node_clone: undefined
-	};
+	if((typeof cloneAddClasses !== 'string') || (cloneAddClasses.length == 0)) {
+		cloneAddClasses = null;
+	}
+	if((typeof cloneRemoveClasses !== 'string') || (cloneRemoveClasses.length == 0)) {
+		cloneRemoveClasses = null;
+	}
+	if((typeof cloneToggleClasses !== 'string') || (cloneAddClasses.length == 0)) {
+		cloneToggleClasses = null;
+	}
 
+	// Make draggable
 	interact(node)
 		.draggable({
 			allowFrom: allowFrom,
@@ -52,86 +61,114 @@ export function makeDraggableWithClone(
 
 			// On drag start
 			onstart: (ev) => {
-        // Custom Action
-				onStart(ev);
+				// Custom Action
+				onstart_extra(ev);
+				// Disable text selection directly by modifying the style
+				document.body.style.userSelect = 'none';
+				document.body.style.webkitUserSelect = 'none'; // For Safari
+				document.body.style.MozUserSelect = 'none'; // For Firefox
+				document.body.style.msUserSelect = 'none'; // For IE/Edge
 			},
 
 			// On drag move: Apply transformation to move the element
 			onmove: (ev) => {
-				dragElement(ev);
+				// Prevent original element from being dragged while clone is made
+				if (ev.target.getAttribute('vvvyyynet_isClone')) {
+					dragElement(ev);
+				}
 
-        // Custom Action
-				onMove(ev);
+				// Custom Action
+				onmove_extra(ev);
 			},
 
-      // On drag end: Restore the original element and remove the clone
-      onend: (ev) => {
+			// On drag end: Restore the original element and remove the clone
+			onend: (ev) => {
+				// Custom Action
+				onend_extra(ev);
 
-        // Custom Action
-        onEnd(ev);
+				// Re-enable text selection after drag ends
+				document.body.style.userSelect = ''; // Reset to default
+				document.body.style.webkitUserSelect = ''; // Reset Safari
+				document.body.style.MozUserSelect = ''; // Reset Firefox
+				document.body.style.msUserSelect = ''; // Reset IE/Edge
 
-        // Show original again
-				if (removeOriginalOnDrag && DRAG.node_orig) {
+				// Show original again
+				if (hideOriginalOnDrag && DRAG.node_orig) {
 					DRAG.node_orig.style.opacity = 1;
-          DRAG.node_orig = undefined;
+					DRAG.node_orig = undefined;
 				}
+
+				// Add/remove/toggle cloneClasses
+				handleClassListActions(DRAG.node_clone, 'remove', cloneAddClasses);
+				handleClassListActions(DRAG.node_clone, 'add', cloneRemoveClasses);
+				handleClassListActions(DRAG.node_clone, 'toggle', cloneToggleClasses);
 
 				// Remove clone
 				if (removeClonesOnEnd && DRAG.node_clone) {
 					DRAG.node_clone.remove();
 					DRAG.node_clone = undefined;
+				} else {
+					//! DEBUG: if set false, then the clone will stick to the cursor. 
+					// clone.setAttribute('vvvyyynet_isClone',false);
+					// clone.setAttribute('vvvyyynet_wasClone',true); // could be a workaroud
 				}
 
-        // Reset active-flag
-				DRAG.is_active = false;
+				// Reset active-flag
+				DRAG.is_dragging = false;
 			}
 		})
 		.on('move', (ev) => {
 			const el = ev.target; //! DEBUG: check if in special cases ev.currentTarget needed
-			const interaction = ev.interaction;
 
-      // Only proceed if an active drag is ongoing
+			// Only proceed if an active drag is ongoing
 			if (
-				interaction.pointerIsDown && // Pointer must be down
-				interaction.interacting() // Prevent activation by panning through element (interaction must start on element)
+				ev.interaction.pointerIsDown && // Pointer must be down
+				ev.interaction.interacting() // Prevent activation by panning through element (interaction must start on element)
 			) {
-        // If element is NOT the clone -> create one
+
+				// console.log('HERE BAD THINGS HAPPEN, WHEN DRAGGING OVER ANOTHER DRAGGABLE', DRAG.is_dragging);
+
+				// If element is NOT the clone -> create one
 				if (
-					!DRAG.is_active && // Makes sure, that only one single clone is created
-					!el.classList.contains('isClone') // Prevent re-cloning clones (just for safety, maybe not needed)
+					!DRAG.is_dragging && // Makes sure, that only one single clone is created
+					!el.getAttribute('vvvyyynet_isClone') // Prevent re-cloning clones (just for safety, maybe not needed)
 				) {
 					// Makes sure, that only one single clone is created
-					DRAG.is_active = true;
+					DRAG.is_dragging = true;
 
 					// Clone node
 					let clone = el.cloneNode(true);
-					clone.classList.add('isClone');
+					clone.setAttribute('vvvyyynet_isClone', true);
 
 					// Set position of clone (//! DEBUG gets offset if dragged too fast)
 					clone.style.position = 'absolute';
-          clone.style.left = `${el.offsetLeft}px`;
-          clone.style.top = `${el.offsetTop}px`;
+					clone.style.left = `${el.offsetLeft}px`;
+					clone.style.top = `${el.offsetTop}px`;
+
+					// Add/remove/toggle cloneClasses
+					handleClassListActions(clone, 'add', cloneAddClasses)
+					handleClassListActions(clone, 'remove', cloneRemoveClasses)
+					handleClassListActions(clone, 'toggle', cloneToggleClasses)
 
 					// Append Clone and start drag interaction
 					document.querySelector(parentNodeOfClone).appendChild(clone);
 
-          // Store references to the original and clone nodes
-          DRAG.node_orig = el;
+					// Store references to the original and clone nodes
+					DRAG.node_orig = el;
 					DRAG.node_clone = clone;
-
-          // hide original while dragging clone
-          if (removeOriginalOnDrag){
-					  DRAG.node_orig.style.opacity = 0;
-          }
+					// hide original while dragging clone
+					if (hideOriginalOnDrag) {
+						DRAG.node_orig.style.opacity = 0;
+					}
 
 					// Stop drag-interaction on original node and apply it on the clone instead
-					interaction.stop();
-					interaction.start({ name: 'drag' }, ev.interactable, clone);
+					ev.interaction.stop();
+					ev.interaction.start({ name: 'drag' }, ev.interactable, clone);
 
-        // If element is the clone -> drag it
-        // -> For cases, where removeClonesOnEnd==false
-        // -> //! TEST THIS
-				} else if (el.classList.contains('isClone')) {
+					// If element is the clone -> drag it
+					// -> For cases, where removeClonesOnEnd==false
+					// -> //! TEST THIS
+				} else if (el.getAttribute('vvvyyynet_isClone')) {
 					dragElement(ev);
 				}
 			}

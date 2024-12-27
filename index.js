@@ -1,9 +1,9 @@
 //-------------------------------------------------------------------
 // Dragging
-import { makeDraggableWithClone } from './utils/makeDraggableWithClone';
+import { makeDraggable } from './utils/makeDraggable.js';
+import { makeDraggableWithClone } from './utils/makeDraggableWithClone.js';
 
 // ----------
 // Export
-export {
-	makeDraggableWithClone
-};
+export { makeDraggable };
+export { makeDraggableWithClone };
