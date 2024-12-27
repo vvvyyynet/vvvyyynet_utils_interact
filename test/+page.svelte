@@ -31,7 +31,7 @@
 				console.log('END');
 			},
 			removeClonesOnEnd: remove,
-			parentNodeOfClone: '#child2',
+			parentNodeOfClone: '#child1',
 			allowFrom: '.unlocked', // tested with :not(.locked), but it does not work
 			cloneAddClasses: 'bg-red-200 border-4 border-black',
 			cloneRemoveClasses: 'bg-white rounded-full'
@@ -67,7 +67,7 @@
 			<div class="unlocked m-3 rounded-full bg-white p-3" use:handle_dragWithoutClone={false}>
 				Drag me!
 			</div>
-			<div class="h-[9999px]"></div>
+			<div class="h-[100%]"></div>
 		</div>
 
 		<div id="child2" class="h-full overflow-y-scroll bg-sky-200 p-10">
@@ -94,7 +94,7 @@
 			<div class="unlocked m-3 rounded-full bg-white p-3" use:handle_dragWithClone={true}>
 				Drag me!
 			</div>
-			<div class="h-[9999px]"></div>
+			<div class="h-[100%]"></div>
 		</div>
 	</div>
 </div>
